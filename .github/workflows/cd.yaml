@@ -87,8 +87,11 @@ jobs:
     # -----------------------------
     - name: Deploy using CodeDeploy
       run: |
-        APP_SPEC_CONTENT=$(base64 -w 0 appspec.json)
-        SHA=$(sha256sum appspec.json | awk '{print $1}')
+        # Base64 encode appspec.json without newlines
+        APP_SPEC_CONTENT=$(base64 -w0 appspec.json)
+
+        # Compute SHA256 of the *decoded* file content EXACTLY as AWS expects
+        SHA=$(openssl dgst -sha256 appspec.json | awk '{print $2}')
 
         aws deploy create-deployment \
           --application-name ecs-bluegreen-codedeploy \
