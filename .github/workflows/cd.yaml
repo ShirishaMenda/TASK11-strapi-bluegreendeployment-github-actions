@@ -31,9 +31,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    # -----------------------------
-    # Create New Task Definition
-    # -----------------------------
+    # -- Create new task definition -----------------------------
     - name: Fetch current task definition
       run: |
         aws ecs describe-task-definition \
@@ -52,9 +50,7 @@ jobs:
         aws ecs register-task-definition \
           --cli-input-json file://new-taskdef.json
 
-    # -----------------------------
-    # Create AppSpec.json
-    # -----------------------------
+    # -- Create AppSpec.json -----------------------------
     - name: Create appspec.json
       run: |
         TASK_DEF_ARN=$(aws ecs describe-task-definition \
@@ -64,12 +60,12 @@ jobs:
 
         cat <<EOF > appspec.json
         {
-          "version": 1,
-          "Resources": [
-        { 
-          "TargetService": {
-           "Type": "AWS::ECS::Service",
-           "Properties": {
+         "version": 1,
+         "Resources": [
+        {
+         "TargetService": {
+         "Type": "AWS::ECS::Service",
+        "Properties": {
           "TaskDefinition": "$TASK_DEF_ARN",
           "LoadBalancerInfo": {
             "ContainerName": "strapi",
@@ -82,9 +78,7 @@ jobs:
         }
         EOF
 
-    # -----------------------------
-    # Trigger CodeDeploy Deployment
-    # -----------------------------
+    # -- Trigger CodeDeploy --------------------------------------
     - name: Deploy using CodeDeploy
       run: |
         aws deploy create-deployment \
@@ -93,9 +87,7 @@ jobs:
           --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
           --revision "revisionType=AppSpecContent,appSpecContent={content=fileb://appspec.json}"
 
-    # -----------------------------
-    # Monitor Deployment
-    # -----------------------------
+    # -- Monitor Deployment --------------------------------------
     - name: Wait for deployment
       run: |
         DEPLOY_ID=$(aws deploy list-deployments \
