@@ -64,18 +64,18 @@ jobs:
 
         cat <<EOF > appspec.json
         {
-          "version": 1,
+         "version": 1,
           "Resources": [
         {
           "TargetService": {
           "Type": "AWS::ECS::Service",
-          "Properties": {
+           "Properties": {
           "TaskDefinition": "$TASK_DEF_ARN",
           "LoadBalancerInfo": {
             "ContainerName": "strapi",
             "ContainerPort": 1337
           }
-          }
+        }
         }
         }
         ]
@@ -87,10 +87,10 @@ jobs:
     # -----------------------------
     - name: Deploy using CodeDeploy
       run: |
-        # Base64 encode appspec.json without newlines
+        # Base64 encode JSON with no newlines
         APP_SPEC_CONTENT=$(base64 -w0 appspec.json)
 
-        # Compute SHA256 of the *decoded* file content EXACTLY as AWS expects
+        # Correct SHA256 hash
         SHA=$(openssl dgst -sha256 appspec.json | awk '{print $2}')
 
         aws deploy create-deployment \
