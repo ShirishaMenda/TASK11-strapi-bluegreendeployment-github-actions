@@ -85,13 +85,18 @@ jobs:
     # -----------------------------
     # Trigger CodeDeploy Deployment
     # -----------------------------
+    
     - name: Deploy using CodeDeploy
-      run: |
-        aws deploy create-deployment \
-          --application-name ecs-bluegreen-codedeploy \
-          --deployment-group-name ecs-bluegreen-dg \
-          --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-          --revision revisionType=AppSpecContent,appSpecContent={file://appspec.json}
+  run: |
+    APP_SPEC_CONTENT=$(base64 -w 0 appspec.json)
+
+    aws deploy create-deployment \
+      --application-name ecs-bluegreen-codedeploy \
+      --deployment-group-name ecs-bluegreen-dg \
+      --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+      --revision "revisionType=AppSpecContent,appSpecContent={content=$APP_SPEC_CONTENT,sha256=$(sha256sum appspec.json | awk '{print $1}')}"
+
+          
 
     # -----------------------------
     # Monitor Deployment
