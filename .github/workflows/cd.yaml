@@ -31,7 +31,9 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    # -- Create new task definition -----------------------------
+    # -----------------------------
+    # Create New Task Definition
+    # -----------------------------
     - name: Fetch current task definition
       run: |
         aws ecs describe-task-definition \
@@ -43,42 +45,44 @@ jobs:
         jq --arg IMAGE "$IMAGE_URI" \
           '.containerDefinitions[0].image=$IMAGE |
            del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' \
-           taskdef.json > new-taskdef.json
+          taskdef.json > new-taskdef.json
 
     - name: Register new task definition
       run: |
         aws ecs register-task-definition \
           --cli-input-json file://new-taskdef.json
 
-    # -- Create AppSpec.json -----------------------------
+    # -----------------------------
+    # Create AppSpec File
+    # -----------------------------
     - name: Create appspec.json
       run: |
         TASK_DEF_ARN=$(aws ecs describe-task-definition \
-          --task-definition ecs-bluegreen-task \
-          --query "taskDefinition.taskDefinitionArn" \
-          --output text)
+            --task-definition ecs-bluegreen-task \
+            --query "taskDefinition.taskDefinitionArn" \
+            --output text)
 
-        cat <<EOF > appspec.json
+        echo "{
+        \"version\": 1,
+        \"Resources\": [
         {
-         "version": 1,
-         "Resources": [
-        {
-         "TargetService": {
-         "Type": "AWS::ECS::Service",
-        "Properties": {
-          "TaskDefinition": "$TASK_DEF_ARN",
-          "LoadBalancerInfo": {
-            "ContainerName": "strapi",
-            "ContainerPort": 1337
+        \"TargetService\": {
+        \"Type\": \"AWS::ECS::Service\",
+        \"Properties\": {
+          \"TaskDefinition\": \"$TASK_DEF_ARN\",
+          \"LoadBalancerInfo\": {
+            \"ContainerName\": \"strapi\",
+            \"ContainerPort\": 1337
           }
         }
         }
         }
         ]
-        }
-        EOF
+        }" > appspec.json
 
-    # -- Trigger CodeDeploy --------------------------------------
+    # -----------------------------
+    # Trigger CodeDeploy
+    # -----------------------------
     - name: Deploy using CodeDeploy
       run: |
         aws deploy create-deployment \
@@ -87,18 +91,22 @@ jobs:
           --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
           --revision "revisionType=AppSpecContent,appSpecContent={content=fileb://appspec.json}"
 
-    # -- Monitor Deployment --------------------------------------
+    # -----------------------------
+    # Monitor Deployment
+    # -----------------------------
     - name: Wait for deployment
       run: |
+        echo "Running list-deployments EXACTLY as below:"
+        echo "aws deploy list-deployments --application-name ecs-bluegreen-codedeploy --deployment-group-name ecs-bluegreen-dg"
+
         DEPLOY_ID=$(aws deploy list-deployments \
-          --application-name ecs-bluegreen-codedeploy \
-          --deployment-group-name ecs-bluegreen-dg \
-          --query "deployments[0]" \
-          --output text)
+            --application-name ecs-bluegreen-codedeploy \
+            --deployment-group-name ecs-bluegreen-dg \
+            --query "deployments[0]" \
+            --output text)
 
         echo "Deployment ID: $DEPLOY_ID"
 
-        aws deploy wait deployment-successful \
-          --deployment-id $DEPLOY_ID
+        aws deploy wait deployment-successful --deployment-id "$DEPLOY_ID"
 
         echo "Deployment completed successfully!"
