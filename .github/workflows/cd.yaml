@@ -43,9 +43,9 @@ jobs:
     - name: Update image in task definition
       run: |
         jq --arg IMAGE "$IMAGE_URI" \
-        '.containerDefinitions[0].image=$IMAGE |
-         del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' \
-         taskdef.json > new-taskdef.json
+          '.containerDefinitions[0].image=$IMAGE |
+           del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' \
+           taskdef.json > new-taskdef.json
 
     - name: Register new task definition
       run: |
@@ -75,7 +75,7 @@ jobs:
             "ContainerName": "strapi",
             "ContainerPort": 1337
           }
-        }
+          }
         }
         }
         ]
@@ -85,18 +85,16 @@ jobs:
     # -----------------------------
     # Trigger CodeDeploy Deployment
     # -----------------------------
-    
     - name: Deploy using CodeDeploy
-  run: |
-    APP_SPEC_CONTENT=$(base64 -w 0 appspec.json)
+      run: |
+        APP_SPEC_CONTENT=$(base64 -w 0 appspec.json)
+        SHA=$(sha256sum appspec.json | awk '{print $1}')
 
-    aws deploy create-deployment \
-      --application-name ecs-bluegreen-codedeploy \
-      --deployment-group-name ecs-bluegreen-dg \
-      --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-      --revision "revisionType=AppSpecContent,appSpecContent={content=$APP_SPEC_CONTENT,sha256=$(sha256sum appspec.json | awk '{print $1}')}"
-
-          
+        aws deploy create-deployment \
+          --application-name ecs-bluegreen-codedeploy \
+          --deployment-group-name ecs-bluegreen-dg \
+          --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+          --revision "revisionType=AppSpecContent,appSpecContent={content=$APP_SPEC_CONTENT,sha256=$SHA}"
 
     # -----------------------------
     # Monitor Deployment
