@@ -87,17 +87,11 @@ jobs:
     # -----------------------------
     - name: Deploy using CodeDeploy
       run: |
-        # Base64 encode JSON with no newlines
-        APP_SPEC_CONTENT=$(base64 -w0 appspec.json)
-
-        # Correct SHA256 hash
-        SHA=$(openssl dgst -sha256 appspec.json | awk '{print $2}')
-
         aws deploy create-deployment \
           --application-name ecs-bluegreen-codedeploy \
           --deployment-group-name ecs-bluegreen-dg \
           --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-          --revision "revisionType=AppSpecContent,appSpecContent={content=$APP_SPEC_CONTENT,sha256=$SHA}"
+          --revision "revisionType=AppSpecContent,appSpecContent={content=fileb://appspec.json}"
 
     # -----------------------------
     # Monitor Deployment
